@@ -23,6 +23,7 @@ app.get('/', async (req, res) => {
   res.render('index', { posts });
 });
 
+
 app.post('/post', async (req, res) => {
   const { title, content } = req.body;
   const post = new Post({ title, content });
