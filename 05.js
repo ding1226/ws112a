@@ -1,44 +1,68 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const session = require('express-session');
-const fs = require('fs').promises;
+const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
 const port = 3000;
 
 app.use(bodyParser.json());
-app.use(session({
-  secret: 'your-secret-key',
-  resave: false,
-  saveUninitialized: true
-}));
 
-app.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-  if (username && password) {
-    const users = await loadUsers();
-    const user = users.find(user => user.username === username && user.password === password);
-    if (user) {
-      // Create a session variable to store user information
-      req.session.user = user;
-      res.send('登入成功！<br><a href="/enter">進入系統</a>');
-    } else {
-      res.send('登入失敗，請檢查帳號密碼是否有錯。<br><a href="/login">重新登入</a>');
-    }
+const db = new sqlite3.Database('contacts.db', (err) => {
+  if (err) {
+    console.error('Error opening database', err);
   } else {
-    res.status(400).send('帳號和密碼是必填欄位');
+    console.log('Database opened');
+    db.run(`
+      CREATE TABLE IF NOT EXISTS contacts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        phone TEXT
+      )
+    `);
   }
 });
 
-app.get('/enter', (req, res) => {
-  if (req.session.user) {
-    res.send(`進入系統，歡迎 ${req.session.user.username}！`);
+app.get('/contacts', (req, res) => {
+  db.all('SELECT * FROM contacts', (err, rows) => {
+    if (err) {
+      console.error('Error fetching contacts', err);
+      res.status(500).send('Internal Server Error');
+    } else {
+      res.json(rows);
+    }
+  });
+});
+
+app.get('/contacts/:id', (req, res) => {
+  const contactId = req.params.id;
+  db.get('SELECT * FROM contacts WHERE id = ?', [contactId], (err, row) => {
+    if (err) {
+      console.error('Error fetching contact', err);
+      res.status(500).send('Internal Server Error');
+    } else if (row) {
+      res.json(row);
+    } else {
+      res.status(404).send('Contact not found');
+    }
+  });
+});
+
+app.post('/contacts', (req, res) => {
+  const { name, phone } = req.body;
+  if (name && phone) {
+    db.run('INSERT INTO contacts (name, phone) VALUES (?, ?)', [name, phone], (err) => {
+      if (err) {
+        console.error('Error adding contact', err);
+        res.status(500).send('Internal Server Error');
+      } else {
+        res.json({ name, phone });
+      }
+    });
   } else {
-    res.redirect('/login');
+    res.status(400).send('Name and phone are required');
   }
 });
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
-
