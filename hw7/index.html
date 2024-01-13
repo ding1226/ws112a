@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact App</title>
+</head>
+<body>
+
+<h1>Contact App</h1>
+
+<div id="contacts-list">
+  <h2>Contacts</h2>
+  <ul id="contacts"></ul>
+</div>
+
+<div id="add-contact-form">
+  <h2>Add Contact</h2>
+  <form id="contact-form">
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" required>
+    <br>
+    <label for="phone">Phone:</label>
+    <input type="text" id="phone" name="phone" required>
+    <br>
+    <button type="submit">Add Contact</button>
+  </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const contactsList = document.getElementById('contacts');
+  const contactForm = document.getElementById('contact-form');
+
+  const fetchContacts = async () => {
+    const response = await fetch('/contacts');
+    const contacts = await response.json();
+
+    contactsList.innerHTML = '';
+    contacts.forEach(contact => {
+      const listItem = document.createElement('li');
+      listItem.textContent = `${contact.name} - ${contact.phone}`;
+      contactsList.appendChild(listItem);
+    });
+  };
+
+  const addContact = async (event) => {
+    event.preventDefault();
+
+    const name = document.getElementById('name').value;
+    const phone = document.getElementById('phone').value;
+
+    const response = await fetch('/contacts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name, phone }),
+    });
+
+    const newContact = await response.json();
+    console.log('New contact added:', newContact);
+
+    // Refresh the contacts list after adding a new contact
+    fetchContacts();
+  };
+
+  contactForm.addEventListener('submit', addContact);
+
+  // Initial fetch to load contacts
+  fetchContacts();
+});
+</script>
+
+</body>
+</html>
