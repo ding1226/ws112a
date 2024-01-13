@@ -82,11 +82,9 @@ app.post('/contacts', async (req, res) => {
   }
 });
 
-// WebSocket handling
 wss.on('connection', (ws) => {
   console.log('Client connected');
 
-  // Send existing contacts to the newly connected client
   loadContacts().then(contacts => {
     ws.send(JSON.stringify(contacts));
   });
